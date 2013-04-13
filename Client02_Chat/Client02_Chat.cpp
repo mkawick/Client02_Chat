@@ -3,6 +3,9 @@
 
 #include "../../BaselineNetworkCode/Thread.h"
 #include "../../BaselineNetworkCode/BasePacket.h"
+
+#include "../../BaselineNetworkCode/PacketFactory.h"
+
 #include <iostream>
 using namespace std;
 #include <assert.h>
@@ -13,6 +16,21 @@ using namespace std;
 
 #pragma warning( disable: 4996 )
 
+
+enum Colors
+{
+   ColorsText = 15,
+   ColorsUsername = 4,
+   ColorsResponseText = 6,
+   ColorsNormal = 2
+};
+void  SetConsoleColor( int color )
+{
+   // change the text color
+   HANDLE hConsole;
+   hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+   SetConsoleTextAttribute( hConsole, color );
+}
 
 class Fruitadens : public Threading::CChainedThread <BasePacket*>
 {
@@ -39,56 +57,6 @@ public:
       Cleanup();
       closesocket( m_clientSocket );
    }
-
-   bool  Login( const string& username, const string& password )
-   {
-      PacketLogin login;
-      login.loginKey = "deadbeef";
-      login.uuid = username;
-      login.username = username;
-      login.loginKey = password;
-
-      //SerializePacketOut( &login );
-      const int bufferSize = 2048;
-      U8 buffer[2048];
-      int offset = 0;
-      login.SerializeOut( buffer, offset );
-      SendPacket( buffer, offset );
-
-      return true;
-   }
-   bool  Logout( const string& username, const string& password )
-   {
-      const int bufferSize = 2048;
-      U8 buffer[2048];
-      PacketLogout logout;
-      int offset = 0;
-      logout.SerializeOut( buffer, offset );
-      SendPacket( buffer, offset );
-
-      return true;
-   }
-   bool	SendMessage( const string& message )
-   {
-      PacketChat chat;
-      //chat. = "test";
-      chat.gameTurn = 3;
-
-      chat.message = message;
-      const int bufferSize = 2048;
-      U8 buffer[2048];
-      int offset = 0;
-      chat.SerializeOut( buffer, offset );
-      SendPacket( buffer, offset );
-
-      return true;
-   }
-
-   bool  ChangeChannel( string& channel )
-   {
-      return true;
-   }
-
 protected:
 
    bool  SetupConnection( const char* serverName, int port )
@@ -131,27 +99,13 @@ protected:
 
       return true;
    }
-   int  ProcessOutputFunction()
-   {
-      return 1;
-   }
 
    int  ProcessInputFunction()
    {
-      const int bufferLength = 2048;
-	   char buffer[ bufferLength ];
-
-      int numBytes = recv( m_clientSocket, buffer, bufferLength, NULL );
-		if( numBytes != SOCKET_ERROR)
-		{
-			buffer[ numBytes ] = 0;// NULL terminate
-			cout << "RECEIVED: " << buffer << endl;
-		}
-
       return 1;
    }
 
-  /* void  SerializePacketOut( const BasePacket* packet )
+   void  SerializePacketOut( const BasePacket* packet )
    {
       const int bufferSize = 2048;
       U8 buffer[2048];
@@ -159,7 +113,7 @@ protected:
       int offset = 0;
       packet->SerializeOut( buffer, offset );
       SendPacket( buffer, offset );
-   }*/
+   }
    bool  SendPacket( const U8* buffer, int length )
    {
       int nBytes = send( m_clientSocket, reinterpret_cast<const char*>( buffer ), length, 0 );
@@ -178,11 +132,126 @@ protected:
    U16            m_port;
 };
 
+//-----------------------------------------------------------------------------
+
+class FruitadensChat : public Fruitadens
+{
+public:
+   FruitadensChat() : Fruitadens() {}
+   bool  Login( const string& username, const string& password )
+   {
+      PacketLogin login;
+      login.loginKey = "deadbeef";
+      login.uuid = username;
+      login.username = username;
+      login.loginKey = password;
+
+      SerializePacketOut( &login );
+
+      return true;
+   }
+   bool  Logout( const string& username, const string& password )
+   {
+      PacketLogout logout;
+      SerializePacketOut( &logout );
+
+      return true;
+   }
+   bool	SendMessage( const string& message )
+   {
+      PacketChatToServer chat;
+      chat.gameTurn = 3;
+
+      chat.message = message;
+      SerializePacketOut( &chat );
+
+      return true;
+   }
+
+   bool  ChangeChannel( string& channel )
+   {
+      PacketChangeChatChannel channelChange;
+      channelChange.chatChannel = channel;
+      SerializePacketOut( &channelChange );
+      return true;
+   }
+
+protected:
+   int  ProcessOutputFunction()
+   {
+      const int bufferLength = 2048;
+	   U8 buffer[ bufferLength ];
+
+      int numBytes = recv( m_clientSocket, (char*) buffer, bufferLength, NULL );
+		if( numBytes != SOCKET_ERROR)
+		{
+			buffer[ numBytes ] = 0;// NULL terminate
+			cout << "RECEIVED: " << buffer << endl;
+         ChatPacketFactory factory;
+         int offset = 0;
+         while( offset < numBytes )
+         {
+            BasePacket* packetIn;
+            if( factory.Parse( buffer, offset, numBytes, &packetIn ) == true )
+            {
+               switch( packetIn->packetType )
+               {
+               case PacketType_Chat:
+                  {
+                     switch( packetIn->packetSubType )
+                     {
+                    /* case PacketChatToServer::ChatType_ChatToServer:
+                        {
+                           PacketChatToServer* chat = static_cast<PacketChatToServer*>( packetIn );
+                        }
+                        return true;*/
+                     case PacketChatToServer::ChatType_ChatToClient:
+                        {
+                           PacketChatToClient* chat = static_cast<PacketChatToClient*>( packetIn );
+
+                           SetConsoleColor( ColorsNormal );
+                           cout << "Message sent by "; 
+                           SetConsoleColor( ColorsUsername );
+                           cout << chat->username << endl;
+                           SetConsoleColor( ColorsNormal );
+                           cout << "Message "; 
+                           SetConsoleColor( ColorsResponseText );
+                           cout << chat->message << endl;
+                           SetConsoleColor( ColorsNormal );
+                        }
+                        break;
+
+                     case PacketChatToServer::ChatType_ChangeChatChannel:
+                        {
+                           PacketChangeChatChannel* channel = static_cast<PacketChangeChatChannel*>( packetIn );
+
+                           SetConsoleColor( ColorsNormal );
+                           cout << "Channel change "; 
+                         /*  SetConsoleColor( ColorsUsername );
+                           cout << channel-> << endl;*/
+                           SetConsoleColor( ColorsNormal );
+                           cout << "Channel "; 
+                           SetConsoleColor( ColorsText );
+                           cout << channel->chatChannel << endl;
+                           SetConsoleColor( ColorsNormal );
+                        }
+                        break;
+                     }
+                  }
+               }
+               delete packetIn;
+            }
+         }
+		}
+      
+      return 1;
+   }
+};
 //--------------------------------------------------------------------
 
 bool BreakBufferUp( const char* buffer, string& newUserLogin, string& message, string& channel );
 void	RequestUserLoginCredentials( string& username, string& password );
-void	SendLoginCedentialsToServer( Fruitadens& fruit, const string& username, const string& password );
+void	SendLoginCedentialsToServer( FruitadensChat& fruit, const string& username, const string& password );
 
 //--------------------------------------------------------------------
 
@@ -191,14 +260,11 @@ int main()
    cout << endl << endl
          << "Client communications app." << endl;
 
-   // change the text color
-   HANDLE hConsole;
-    hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    SetConsoleTextAttribute(hConsole, 2);
+   
 
    InitializeSockets();
 
-   Fruitadens fruity;
+   FruitadensChat fruity;
    fruity.Connect( "localhost", 9600 );
 
    string username, password;
@@ -216,7 +282,10 @@ int main()
 
    while( 1 )
    {
-      cin >> buffer;
+      //cin >> buffer;
+      
+      cout << "Type your next message. Use /channel_name to select the channel. " << endl << ">";
+      scanf( "%s", buffer );
       if (strcmp( buffer, "exit" ) == 0)
       {
          break;
@@ -246,8 +315,6 @@ int main()
          }
       }
 
-      cout << "Type your next message. Use /channel_name to select the channel. " << endl;
-     cout << "\n>";
    }
 
    ShutdownSockets();
@@ -318,8 +385,11 @@ void	RequestUserLoginCredentials( string& username, string& password )
 {
 	do{// todo, request password
 		char buffer[256];
+      SetConsoleColor( ColorsNormal );
 		cout<< "Enter username: ";
+      SetConsoleColor( ColorsUsername );
 		cin >> buffer;
+      SetConsoleColor( ColorsResponseText );
 		if( strlen( buffer ) < 1 ){// todo, needs more validation
 			cout << "username " << buffer << " is invalid" << endl;
 		} else {
@@ -331,7 +401,7 @@ void	RequestUserLoginCredentials( string& username, string& password )
 
 //--------------------------------------------------------------------------
 
-void	SendLoginCedentialsToServer( Fruitadens& fruity, const string& username, const string& password )
+void	SendLoginCedentialsToServer( FruitadensChat& fruity, const string& username, const string& password )
 {
    if( fruity.Login( username, password ) == false )
    {

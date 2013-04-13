@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="C:\projects\network_libs\libevent\include;C:\projects\network_libs\libevent\WIN32-Code"
+				AdditionalIncludeDirectories="D:\Develop\Libevent_networking\include;&quot;D:\Develop\Libevent_networking\WIN32-Code&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -61,6 +61,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="D:\Develop\Libevent_networking\libevent.lib"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -175,6 +176,10 @@
 				RelativePath=".\Client02_Chat.cpp"
 				>
 			</File>
+			<File
+				RelativePath="..\..\BaselineNetworkCode\DiplodocusChat.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -200,18 +205,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\BaselineNetworkCode\ClientConnection.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\BaselineNetworkCode\ClientConnection.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\BaselineNetworkCode\ClientConnection.inl"
-				>
-			</File>
-			<File
 				RelativePath="..\..\BaselineNetworkCode\DataTypes.h"
 				>
 			</File>
@@ -228,11 +221,35 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\BaselineNetworkCode\DiplodocusChat.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\BaselineNetworkCode\JSON.cpp"
 				>
 			</File>
 			<File
 				RelativePath="..\..\BaselineNetworkCode\JSON.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BaselineNetworkCode\Khaan.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BaselineNetworkCode\Khaan.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BaselineNetworkCode\Khaan.inl"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BaselineNetworkCode\KhaanChat.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BaselineNetworkCode\KhaanChat.h"
 				>
 			</File>
 			<File
