@@ -71,7 +71,7 @@ public:
    bool	SendMessage( const string& message )
    {
       PacketChat chat;
-      chat.uuid = "test";
+      //chat. = "test";
       chat.gameTurn = 3;
 
       chat.message = message;
