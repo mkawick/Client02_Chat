@@ -241,6 +241,10 @@ protected:
                }
                delete packetIn;
             }
+            else 
+            {
+               offset = numBytes;
+            }
          }
 		}
       
@@ -319,6 +323,7 @@ int main()
 
    ShutdownSockets();
 
+   cout << "press any key to exit" << endl;
    getch();
 	return 0;
 }
