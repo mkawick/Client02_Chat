@@ -24,6 +24,7 @@ enum Colors
    ColorsResponseText = 6,
    ColorsNormal = 2
 };
+
 void  SetConsoleColor( int color )
 {
    // change the text color
@@ -31,6 +32,8 @@ void  SetConsoleColor( int color )
    hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
    SetConsoleTextAttribute( hConsole, color );
 }
+
+//-------------------------------------------------------------------------
 
 class Fruitadens : public Threading::CChainedThread <BasePacket*>
 {
@@ -196,6 +199,32 @@ protected:
             {
                switch( packetIn->packetType )
                {
+                  case PacketType_Login:
+                  {
+                     switch( packetIn->packetSubType )
+                     {
+                     case PacketLogin::LoginType_Login:
+                        {
+                           PacketLogin* login = static_cast<PacketLogin*>( packetIn );
+                           SetConsoleColor( ColorsNormal );
+                           cout << "User login "; 
+                           SetConsoleColor( ColorsUsername );
+                           cout << login->username << endl;
+                           SetConsoleColor( ColorsNormal );
+                        }
+                        break;
+                     case PacketLogin::LoginType_PacketLogoutToClient:
+                        {
+                           PacketLogoutToClient* login = static_cast<PacketLogoutToClient*>( packetIn );
+                           SetConsoleColor( ColorsNormal );
+                           cout << "User logged out "; 
+                           SetConsoleColor( ColorsUsername );
+                           cout << login->username << endl;
+                           SetConsoleColor( ColorsNormal );
+                        }
+                        break;
+                        }
+                     }
                case PacketType_Chat:
                   {
                      switch( packetIn->packetSubType )
@@ -209,31 +238,56 @@ protected:
                         {
                            PacketChatToClient* chat = static_cast<PacketChatToClient*>( packetIn );
 
-                           SetConsoleColor( ColorsNormal );
-                           cout << "Message sent by "; 
                            SetConsoleColor( ColorsUsername );
-                           cout << chat->username << endl;
+                           cout << chat->username ;
+
                            SetConsoleColor( ColorsNormal );
-                           cout << "Message "; 
+                           cout << " says "; 
+
                            SetConsoleColor( ColorsResponseText );
-                           cout << chat->message << endl;
+                           cout << chat->message;
+
+                           SetConsoleColor( ColorsNormal );
+                           cout << " on chat channel:";
+
+                           SetConsoleColor( ColorsResponseText );
+                           cout << chat->chatChannel << endl;
                            SetConsoleColor( ColorsNormal );
                         }
                         break;
 
-                     case PacketChatToServer::ChatType_ChangeChatChannel:
+                     case PacketChatToServer::ChatType_ChangeChatChannelToClient:
                         {
-                           PacketChangeChatChannel* channel = static_cast<PacketChangeChatChannel*>( packetIn );
+                           PacketChangeChatChannelToClient* channel = static_cast<PacketChangeChatChannelToClient*>( packetIn );
 
                            SetConsoleColor( ColorsNormal );
                            cout << "Channel change "; 
-                         /*  SetConsoleColor( ColorsUsername );
-                           cout << channel-> << endl;*/
+                           SetConsoleColor( ColorsUsername );
+                           cout << channel->username;
                            SetConsoleColor( ColorsNormal );
-                           cout << "Channel "; 
+                           cout << " changed to channel "; 
                            SetConsoleColor( ColorsText );
                            cout << channel->chatChannel << endl;
                            SetConsoleColor( ColorsNormal );
+                        }
+                        break;
+                     case PacketChatToServer::ChatType_SendListOfChannelsToClient:
+                        {
+                           PacketChatChannelListToClient* channelList = static_cast<PacketChatChannelListToClient*>( packetIn );
+
+                           SetConsoleColor( ColorsNormal );
+                           int num = channelList->chatChannel.size();
+                           cout << "Channels for this user are [" << num << "] = {"; 
+
+                           SetConsoleColor( ColorsUsername );
+                           for( int i=0; i<num; i++ )
+                           {
+                              cout << channelList->chatChannel[i];
+                              if( i < num-1 )
+                                  cout << ", ";
+                           }
+                           SetConsoleColor( ColorsNormal );
+                           cout<< "}" << endl;
                         }
                         break;
                      }
@@ -253,7 +307,7 @@ protected:
 };
 //--------------------------------------------------------------------
 
-bool BreakBufferUp( const char* buffer, string& newUserLogin, string& message, string& channel );
+bool BreakBufferUp( const string& buffer, string& newUserLogin, string& message, string& channel );
 void	RequestUserLoginCredentials( string& username, string& password );
 void	SendLoginCedentialsToServer( FruitadensChat& fruit, const string& username, const string& password );
 
@@ -268,11 +322,13 @@ int main()
 
    InitializeSockets();
 
+   string serverName = "localhost";
+   serverName = "chat.mickey.playdekgames.com";
    FruitadensChat fruity;
-   fruity.Connect( "localhost", 9600 );
+   fruity.Connect( serverName.c_str(), 9600 );
 
    string username, password;
-	RequestUserLoginCredentials( username, password );
+   RequestUserLoginCredentials( username, password );
 	if( username.size() == 0 )
 	{
       fruity.Cleanup();
@@ -282,15 +338,18 @@ int main()
 
    SendLoginCedentialsToServer( fruity, username, password );
 
-   char buffer[256];
+   //char buffer[256];
 
    while( 1 )
    {
       //cin >> buffer;
       
       cout << "Type your next message. Use /channel_name to select the channel. " << endl << ">";
-      scanf( "%s", buffer );
-      if (strcmp( buffer, "exit" ) == 0)
+      //scanf( "%s", buffer );
+      std::string buffer;
+      std::getline(std::cin, buffer);
+
+      if (strcmp( buffer.c_str(), "exit" ) == 0)
       {
          break;
       }
@@ -323,6 +382,7 @@ int main()
 
    ShutdownSockets();
 
+   SetConsoleColor( ColorsText );
    cout << "press any key to exit" << endl;
    getch();
 	return 0;
@@ -375,7 +435,7 @@ void	FindCommands( string& originalText, string& command )
 
 //--------------------------------------------------------------------------
 
-bool BreakBufferUp( const char* buffer, string& newUserLogin, string& message, string& channel )
+bool BreakBufferUp( const string& buffer, string& newUserLogin, string& message, string& channel )
 {
    string textBuffer = buffer;
    FindCommands( textBuffer , channel );
