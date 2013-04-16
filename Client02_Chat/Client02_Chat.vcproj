@@ -179,6 +179,10 @@
 				RelativePath=".\Client02_Chat.cpp"
 				>
 			</File>
+			<File
+				RelativePath="..\..\BaselineNetworkCode\Pyroraptor.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -228,6 +232,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\BaselineNetworkCode\Fruitadens.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BaselineNetworkCode\Fruitadens.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\BaselineNetworkCode\JSON.cpp"
 				>
 			</File>
@@ -265,6 +277,10 @@
 			</File>
 			<File
 				RelativePath="..\..\BaselineNetworkCode\Platform.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\BaselineNetworkCode\Pyroraptor.h"
 				>
 			</File>
 			<File

@@ -5,6 +5,8 @@
 #include "../../BaselineNetworkCode/BasePacket.h"
 
 #include "../../BaselineNetworkCode/PacketFactory.h"
+#include "../../BaselineNetworkCode/Fruitadens.h"
+#include "../../BaselineNetworkCode/Pyroraptor.h"
 
 #include <iostream>
 using namespace std;
@@ -33,107 +35,6 @@ void  SetConsoleColor( int color )
    SetConsoleTextAttribute( hConsole, color );
 }
 
-//-------------------------------------------------------------------------
-
-class Fruitadens : public Threading::CChainedThread <BasePacket*>
-{
-public:
-   Fruitadens() : CChainedThread( true, 30 ),
-                  m_clientSocket( 0 ),
-                  m_isConnected( false ),
-                  m_port( 0 )
-   {
-      memset( &m_ipAddress, 0, sizeof( m_ipAddress ) );
-   }
-
-   bool  Connect( const char* serverName, int port )// work off of DNS
-   {
-      if( SetupConnection( serverName, port ) == false )
-      {
-         assert( 0 );
-         return false;
-      }
-      return true;
-   }
-   bool  Disconnect()
-   {
-      Cleanup();
-      closesocket( m_clientSocket );
-   }
-protected:
-
-   bool  SetupConnection( const char* serverName, int port )
-   {
-      Pause();
-      m_clientSocket = socket(AF_INET, SOCK_STREAM, 0);
-      if (m_clientSocket == SOCKET_ERROR)
-      {
-         cout << "Client: The Socket is stuck sir! It wont open!\n";
-         return false;
-      }
-      struct hostent *host_entry;
-      if ((host_entry = gethostbyname( serverName )) == NULL)
-      {
-         cout << "Client: I'm lost =.=; Wheres the host?\n";
-      }
-      struct sockaddr_in     server;
-      server.sin_family = AF_INET;
-      server.sin_port = htons(port);
-      server.sin_addr.s_addr = *(unsigned long*) host_entry->h_addr;
-
-      if (connect( m_clientSocket, (sockaddr*)&server, sizeof(server)) == SOCKET_ERROR)
-      {
-         cout << "Client: ****ing server wont let me connect dude.\n";
-      }
-      cout << "Client: I-AM-RUNNING!\n";
-
-      if( SetSocketToNonblock( m_clientSocket ) == false )
-	   {
-		   cout << "ERROR: cannot set socket to non-blocking" << endl;
-		   //EndClient( m_clientSocket, receiveThread );
-         Cleanup();
-         closesocket( m_clientSocket );
-         m_clientSocket = 0;
-         return false;
-	   }
-
-      m_isConnected = true;
-      Resume();
-
-      return true;
-   }
-
-   int  ProcessInputFunction()
-   {
-      return 1;
-   }
-
-   void  SerializePacketOut( const BasePacket* packet )
-   {
-      const int bufferSize = 2048;
-      U8 buffer[2048];
-
-      int offset = 0;
-      packet->SerializeOut( buffer, offset );
-      SendPacket( buffer, offset );
-   }
-   bool  SendPacket( const U8* buffer, int length )
-   {
-      int nBytes = send( m_clientSocket, reinterpret_cast<const char*>( buffer ), length, 0 );
-      if( nBytes == SOCKET_ERROR || nBytes < length )
-      {
-         cout << "Client: It wont go through sir!!\n";
-         return false;
-      }
-
-      return true;
-   }
-
-   int            m_clientSocket;
-   bool           m_isConnected;
-   sockaddr_in    m_ipAddress;
-   U16            m_port;
-};
 
 //-----------------------------------------------------------------------------
 
@@ -188,6 +89,8 @@ protected:
       int numBytes = recv( m_clientSocket, (char*) buffer, bufferLength, NULL );
 		if( numBytes != SOCKET_ERROR)
 		{
+         SetConsoleColor( ColorsText );
+         Log( "Data has come in" );
 			buffer[ numBytes ] = 0;// NULL terminate
 			cout << "RECEIVED: " << buffer << endl;
          ChatPacketFactory factory;
@@ -326,6 +229,9 @@ int main()
    serverName = "chat.mickey.playdekgames.com";
    FruitadensChat fruity;
    fruity.Connect( serverName.c_str(), 9600 );
+
+   Pyroraptor pyro;
+   fruity.AddOutputChain( &pyro );
 
    string username, password;
    RequestUserLoginCredentials( username, password );
