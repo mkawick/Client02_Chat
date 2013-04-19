@@ -93,12 +93,12 @@ protected:
          Log( "Data has come in" );
 			buffer[ numBytes ] = 0;// NULL terminate
 			cout << "RECEIVED: " << buffer << endl;
-         ChatPacketFactory factory;
+         PacketFactory factory;
          int offset = 0;
          while( offset < numBytes )
          {
             BasePacket* packetIn;
-            if( factory.Parse( buffer, offset, numBytes, &packetIn ) == true )
+            if( factory.Parse( buffer, offset, &packetIn ) == true )
             {
                switch( packetIn->packetType )
                {
@@ -151,7 +151,7 @@ protected:
                            cout << chat->message;
 
                            SetConsoleColor( ColorsNormal );
-                           cout << " on chat channel:";
+                           cout << " on chat channel: ";
 
                            SetConsoleColor( ColorsResponseText );
                            cout << chat->chatChannel << endl;
@@ -168,8 +168,8 @@ protected:
                            SetConsoleColor( ColorsUsername );
                            cout << channel->username;
                            SetConsoleColor( ColorsNormal );
-                           cout << " changed to channel "; 
-                           SetConsoleColor( ColorsText );
+                           cout << " changed to channel: "; 
+                           SetConsoleColor( ColorsResponseText );
                            cout << channel->chatChannel << endl;
                            SetConsoleColor( ColorsNormal );
                         }
